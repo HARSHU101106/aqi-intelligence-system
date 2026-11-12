@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import users          # NEW
+from app.routers import users, location, air_quality
 
 app = FastAPI(title="AQI Intelligence API")
 
@@ -11,7 +11,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(users.router)       # NEW
+app.include_router(users.router)
+app.include_router(location.router)
+app.include_router(air_quality.router)
 
 @app.get("/health")
 def health():
