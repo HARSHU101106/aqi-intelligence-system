@@ -1,74 +1,56 @@
-import { useEffect, useState } from "react";
 import { useLocation } from "./hooks/useLocation";
-import { fetchAirQuality, type AirQuality } from "./api";
+import { useEnvironment } from "./hooks/useEnvironment";
+import AqiCard from "./components/AqiCard";
+import PollutantGrid from "./components/PollutantGrid";
+import WeatherCard from "./components/WeatherCard";
+import MapView from "./components/MapView";
+import Spinner from "./components/Spinner";
+import ErrorBanner from "./components/ErrorBanner";
 
 export default function App() {
-  const {
-    coords,
-    error: locError,
-    loading: locLoading,
-    request,
-  } = useLocation();
-  const [aq, setAq] = useState<AirQuality | null>(null);
-  const [aqError, setAqError] = useState<string | null>(null);
-  const [aqLoading, setAqLoading] = useState(false);
-
-  useEffect(() => {
-    if (!coords) return;
-    setAqLoading(true);
-    setAqError(null);
-    fetchAirQuality(coords.lat, coords.lon)
-      .then(setAq)
-      .catch((e) => setAqError(e.message))
-      .finally(() => setAqLoading(false));
-  }, [coords]);
+  const { coords, error: locError, request } = useLocation();
+  const { data, loading, error } = useEnvironment(coords);
 
   return (
-    <div style={{ padding: 24, fontFamily: "sans-serif" }}>
-      <h1>Air Quality Dashboard</h1>
+    <div className="layout">
+      <aside className="sidebar">
+        <h2>AirAware</h2>
+        <p>Home</p>
+        <p>Map</p>
+        <p>Weather</p>
+        <p>Analytics (soon)</p>
+      </aside>
+      <main className="content">
+        <header style={{ display: "flex", justifyContent: "space-between" }}>
+          <h1>Environmental Dashboard</h1>
+          <button onClick={request}>📍 Share my location</button>
+        </header>
 
-      <section>
-        <h2>Current Location</h2>
-        <button onClick={request} disabled={locLoading}>
-          {locLoading ? "Finding you..." : "Share my location"}
-        </button>
+        {locError && <ErrorBanner message={locError} />}
+        {error && <ErrorBanner message={error} />}
+        {loading && <Spinner />}
+
         {coords && (
-          <p>
-            Latitude: {coords.lat.toFixed(5)} | Longitude:{" "}
-            {coords.lon.toFixed(5)}
-          </p>
+          <div className="card">
+            <h3>Your location</h3>
+            Latitude: {coords.lat.toFixed(4)}, Longitude:{" "}
+            {coords.lon.toFixed(4)}
+          </div>
         )}
-        {locError && <p style={{ color: "crimson" }}>{locError}</p>}
-      </section>
 
-      <section>
-        <h2>Air Quality</h2>
-        {aqLoading && <p>Loading air quality...</p>}
-        {aqError && <p style={{ color: "crimson" }}>{aqError}</p>}
-        {aq && (
+        {data && (
           <>
-            <p>
-              <strong>AQI: {aq.aqi ?? "N/A"}</strong>
-            </p>
-            <p>Station: {aq.station.name ?? "Unknown"}</p>
-            <p>
-              Updated:{" "}
-              {aq.timestamp
-                ? new Date(aq.timestamp).toLocaleString()
-                : "Unknown"}
-            </p>
-            <p>Source: {aq.sources_used.join(", ")}</p>
-            <ul>
-              {Object.entries(aq.pollutants).map(([name, p]) => (
-                <li key={name}>
-                  {name.toUpperCase()}:{" "}
-                  {p ? `${p.value} ${p.unit}` : "not available"}
-                </li>
-              ))}
-            </ul>
+            <AqiCard
+              aqi={data.air_quality.aqi}
+              station={data.air_quality.station}
+              time={data.air_quality.time}
+            />
+            <PollutantGrid data={data.air_quality.pollutants} />
+            <WeatherCard w={data.weather} />
+            <MapView data={data} />
           </>
         )}
-      </section>
+      </main>
     </div>
   );
 }
