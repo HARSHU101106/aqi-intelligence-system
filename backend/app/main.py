@@ -14,6 +14,8 @@ app.add_middleware(
 app.include_router(users.router)
 app.include_router(location.router)
 app.include_router(air_quality.router)
+from app.routers import environment
+app.include_router(environment.router)
 
 @app.get("/health")
 def health():
